@@ -17,52 +17,33 @@ This project extends the hackathon-starter template by adding a blog post system
 - Node.js and npm
 - jq
 
-###Setup Instructions
-Local Environment Setup
-2. Clone the Repository:
-```
-git clone https://github.com/sahat/hackathon-starter.git
-cd hackathon-starter
-```
-2. Install Dependencies:
+##Setup Instructions
 
-```
-npm install
-```
-3. Start Local Development Server
-```
-npm run backend
-npm run frontend
-```
-4. Run Tests (Optional)
-```
-npm run test
-```
 ###AWS Setup with Terraform
 1. Install Terraform: If not installed, download Terraform here.
 2. Configure AWS CLI:
     ```
     aws configure
     ```
-    Enter your AWS Access Key ID, Secret Access Key, region, and output format.
+   Enter your AWS Access Key ID, Secret Access Key, region, and output format.
 3. Provision Infrastructure
-   - Initialize Terraform 
+    - Initialize Terraform
+         ```
+         terraform init
+         ```
+    - Plan Terraform configuration
         ```
-        terraform init
+        terraform apply -out demo
         ```
-   - Plan Terraform configuration
-       ```
-       terraform apply -out demo
-       ```
-   - Apply Terraform configuration
-       ```
-       terraform apply demo
-       ```
-   
+    - Apply Terraform configuration
+        ```
+        terraform apply demo
+        ```
+
    This step will create:
-   - An EKS cluster for deploying the app.
-   - ECR repositories for storing the frontend and backend Docker images.
-   
+    - An EKS cluster for deploying the app.
+    - ECR repositories for storing the frontend and backend Docker images.
+
 4. Verify Cluster Access: Once the EKS cluster is created, update your kubeconfig to access the cluster
     ```
     aws eks update-kubeconfig --name demo-cluster --region us-east-1 --profile development
@@ -89,4 +70,34 @@ npm run test
 - Build Docker images for the frontend and backend.
 - Push the images to AWS ECR.
 - Deploy the updated application to the EKS cluster.
+
+### Application
+
+1. Clone the Repository:
+```
+git clone https://github.com/phuoc-le/interview_demo.git
+cd application
+```
+2. Install Dependencies:
+
+```
+npm install
+```
+3. Copy .env.example into .env
+```
+cp .env.example .env
+```
+4. Start Local Development Server
+```
+npm run backend
+npm run frontend
+```
+4. Create fake data to test
+```
+npm run seed
+```
+5. Run Tests (Optional)
+```
+npm run test
+```
 
