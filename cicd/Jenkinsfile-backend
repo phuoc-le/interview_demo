@@ -13,7 +13,7 @@ pipeline {
         HELM_EXPERIMENTAL_OCI = 1
         BUILD_ENV = "demo"
         NAME_SPACE = "default"
-        PORT = 80
+        PORT = 8080
         AWS_ACCOUNT_ID = "xxxxxx"
         AWS_REGION = "us-east-1"
         CONTAINER_REGISTRY_URL = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
@@ -23,7 +23,7 @@ pipeline {
         MODE = "$params.MODE"
         BRANCH = "$params.BRANCH"
         CREDENTIALS_ID = 'github-credentials'
-        GIT_REPO_URL = 'https://github.com/phuoc-le/interview_tf_api_demo.git'
+        GIT_REPO_URL = 'https://github.com/phuoc-le/interview_demo.git'
     }
     stages {
         stage('Checkout') {

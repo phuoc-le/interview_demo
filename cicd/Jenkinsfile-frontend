@@ -9,7 +9,7 @@ pipeline {
         disableResume()
     }
     environment {
-        SERVICE_NAME = "demo-api"
+        SERVICE_NAME = "demo-web"
         HELM_EXPERIMENTAL_OCI = 1
         BUILD_ENV = "demo"
         NAME_SPACE = "default"

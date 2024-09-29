@@ -8,6 +8,7 @@ services:
      - "8080:8080"
     environment:
      - MONGODB_URI=mongodb://mongo:27017/test
+     - BASE_URL=http://localhost:8080
     links:
      - mongo
     depends_on:
@@ -17,8 +18,5 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - BASE_URL=http://local
-    links:
-      - mongo
-    depends_on:
-      - mongo
+      - BASE_URL=http://localhost:3000
+
