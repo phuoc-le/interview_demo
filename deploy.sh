@@ -9,13 +9,24 @@ fi
 # Assign the environment. Default is development
 ENVIRONMENT="$1:-development"
 
+AWS_ACCOUNT_ID="xxxxxx"
+AWS_REGION="us-east-1"
+CONTAINER_REGISTRY_URL="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+FRONTEND_SERVICE_NAME=frontend-app
+BACKEND_SERVICE_NAME=backend-app
+BACKEND_TAG=v1.0.0-demo
+FRONTEND_TAG=v1.0.0-demo
+KUBECONFIG="/opt/.kube/config_${ENVIRONMENT}"
+NAMESPACE=default
+
 # Read configuration from config.yaml using yq
 DB_URL=$(yq e ".$ENVIRONMENT.db_url" config.yaml)
-API_KEY=$(yq e ".$ENVIRONMENT.api_key" config.yaml)
-APP_PORT=$(yq e ".$ENVIRONMENT.app_port" config.yaml)
+API_URL=$(yq e ".$ENVIRONMENT.api_url" config.yaml)
+FRONTEND_PORT=$(yq e ".$ENVIRONMENT.frontend_port" config.yaml)
+BACKEND_PORT=$(yq e ".$ENVIRONMENT.backend_port" config.yaml)
 
 # Check if the environment config is found
-if [ -z "$DB_URL" ] || [ -z "$API_KEY" ] || [ -z "$APP_PORT" ]; then
+if [ -z "$DB_URL" ] || [ -z "$API_URL" ] || [ -z "$APP_PORT" ]; then
   echo "Error: Configuration for environment '$ENVIRONMENT' not found in config.yaml."
   exit 1
 fi
@@ -23,21 +34,12 @@ fi
 # Output the config values (for debugging, can be removed in production)
 echo "Deploying for environment: $ENVIRONMENT"
 echo "DB URL: $DB_URL"
-echo "API Key: $API_KEY"
-echo "App Port: $APP_PORT"
-
-# Example: Export these values to be used in other scripts or commands
-export DB_URL
-export API_KEY
-export APP_PORT
-
-# Your deployment logic goes here (e.g., Docker, Kubernetes commands)
-# Example:
-# docker build -t myapp:$ENVIRONMENT .
-# docker run -e DB_URL=$DB_URL -e API_KEY=$API_KEY -p $APP_PORT:80 myapp:$ENVIRONMENT
+echo "API URL: $API_URL"
+echo "Frontend Port: $FRONTEND_PORT"
+echo "Backend Port: $BACKEND_PORT"
 
 # Apply Kubernetes manifests, injecting the environment-specific variables
-kubectl set env deployment/backend-deployment DB_URL=$DB_URL API_KEY=$API_KEY APP_PORT=$APP_PORT
-kubectl set env deployment/frontend-deployment API_KEY=$API_KEY APP_PORT=$APP_PORT
+helm upgrade --install ${BACKEND_SERVICE_NAME} --kubeconfig ${KUBECONFIG} ./deployment/helm-chart -f deployment/environment/${ENVIRONMENT}/values.backend.yaml --set service.port=${BACKEND_PORT} --set service.targetPort=${BACKEND_PORT} --set image.repository=${CONTAINER_REGISTRY_URL}/${BACKEND_SERVICE_NAME} --set image.tag=${BACKEND_TAG}  --set env.configmap.API_URL=${API_URL} --set env.secret.MONGODB_URI=${MONGODB_URI} -n ${NAMESPACE}
+helm upgrade --install ${FRONTEND_SERVICE_NAME} --kubeconfig ${KUBECONFIG} ./deployment/helm-chart -f deployment/environment/${ENVIRONMENT}/values.frontend.yaml --set service.port=${FRONTEND_PORT} --set service.targetPort=${FRONTEND_PORT} --set image.repository=${CONTAINER_REGISTRY_URL}/${FRONTEND_SERVICE_NAME} --set image.tag=${FRONTEND_TAG} --set env.configmap.API_URL=${API_URL} -n ${NAMESPACE}
 
 # End of script

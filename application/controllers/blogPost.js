@@ -96,7 +96,6 @@ exports.showUpdateBlogPost = async (req, res, next) => {
 // UPDATE: Handle updates
 exports.updateBlogPost = async (req, res) => {
   const postId = req.params.id;
-  console.log('Received CSRF Token:', req.headers['x-csrf-token']);
   try {
     const {
       title,
@@ -120,7 +119,6 @@ exports.deleteBlogPost = async (req, res) => {
   const postId = req.params.id;
   try {
     await Blog.findByIdAndDelete(postId);
-    console.log('postId: ', postId);
     res.status(200)
       .send(`Post with ID ${postId} deleted.`);
   } catch (err) {

@@ -99,4 +99,6 @@ npm run seed
 ```
 npm run test
 ```
+**I have incorporated the following code into the respective files: controller/blogPost.js, models/BlogPost.js, routes/blogPost.js, view/blogPost, frontend.js, and backend.js and layout.pug.**
 
+### Organize environments for build and deployment

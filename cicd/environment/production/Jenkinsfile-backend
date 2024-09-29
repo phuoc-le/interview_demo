@@ -9,21 +9,21 @@ pipeline {
         disableResume()
     }
     environment {
-        SERVICE_NAME = "demo-web"
+        SERVICE_NAME = "demo-api"
         HELM_EXPERIMENTAL_OCI = 1
-        BUILD_ENV = "demo"
+        BUILD_ENV = "production"
         NAME_SPACE = "default"
         PORT = 80
         AWS_ACCOUNT_ID = "xxxxxx"
         AWS_REGION = "us-east-1"
         CONTAINER_REGISTRY_URL = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
         REPOSITORY_NAME = "${BUILD_ENV}/${SERVICE_NAME}"
-        CLUSTER_NAME = "demo-eks"
-        KUBECONFIG = "/opt/.kube/config_demo"
+        CLUSTER_NAME = "${BUILD_ENV}-eks"
+        KUBECONFIG = "/opt/.kube/config_${BUILD_ENV}"
         MODE = "$params.MODE"
         BRANCH = "$params.BRANCH"
         CREDENTIALS_ID = 'github-credentials'
-        GIT_REPO_URL = 'https://github.com/phuoc-le/interview_demo.git'
+        GIT_REPO_URL = 'https://github.com/phuoc-le/interview_tf_api_demo.git'
     }
     stages {
         stage('Checkout') {
@@ -65,7 +65,7 @@ pipeline {
             }
             steps {
                 echo "Start building ...."
-                sh 'cd ../application && npm install'
+                sh 'cd ../application && npm install && npm run build'
                 echo "Finish building ...."
             }
         }
@@ -125,7 +125,7 @@ pipeline {
                         sh 'aws eks update-kubeconfig --region ${REGION} --name ${CLUSTER_NAME}'
                         sh 'aws ecr describe-images --region "${AWS_REGION}" --repository-name "${REPOSITORY_NAME}" --image-ids imageTag="$DOCKER_TAG_ID"'
                         echo "Deploying..."
-                        sh 'helm upgrade --install ${SERVICE_NAME} --kubeconfig ${KUBECONFIG} ./deployment/demo-chart -f ./deployment/values.default.yaml --set service.port=${PORT} --set service.targetPort=${PORT} --set image.repository=${CONTAINER_REGISTRY_URL}/${REPOSITORY_NAME} --set image.tag=${DOCKER_TAG_ID} -n ${NAME_SPACE} --wait'
+                        sh 'helm upgrade --install ${SERVICE_NAME} --kubeconfig ${KUBECONFIG} ./demo-chart -f values.yaml --set service.port=${PORT} --set service.targetPort=${PORT} --set image.repository=${CONTAINER_REGISTRY_URL}/${REPOSITORY_NAME} --set image.tag=${DOCKER_TAG_ID} -n ${NAME_SPACE} --wait'
                     }
                 }
                 echo "Finished deploying the service to EKS ...."
