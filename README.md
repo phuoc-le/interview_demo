@@ -101,4 +101,8 @@ npm run test
 ```
 **I have incorporated the following code into the respective files: controller/blogPost.js, models/BlogPost.js, routes/blogPost.js, view/blogPost, frontend.js, and backend.js and layout.pug.**
 
-### Organize environments for build and deployment
+### Some images for application.
+![](images/list_posts.png)
+![](images/create_post.png)
+![](images/show_post.png)
+![](images/update_post.png)
