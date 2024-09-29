@@ -61,8 +61,8 @@ This project extends the hackathon-starter template by adding a blog post system
 2. Configure Jenkins Credentials:
 - AWS: Add your AWS access keys in Jenkins Credentials.
 3. Set up Jenkins Pipeline:
-- Create a Jenkinsfile in the root of your repository to define the pipeline stages (e.g., test, build, push, and deploy).
-- Ensure Jenkins has access to your Kubernetes cluster using a kubeconfig file stored in Jenkins credentials.
+- Create a Jenkinsfile.backend in the root of the repository to define the pipeline stages (e.g., test, build, push, and deploy).
+- Create a Jenkinsfile.frontend in the root of the repository to define the pipeline stages (e.g., test, build, push, and deploy).
 4. Run the Pipeline: Jenkins will automatically:
 - Pull the latest code from GitHub.
 - Run tests.
