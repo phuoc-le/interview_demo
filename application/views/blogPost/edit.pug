@@ -1,0 +1,73 @@
+extends ../layout
+
+block content
+  h1 Edit Blog Post
+  form#editBlogPostForm(method='POST', action=`http://localhost:8080/blog-post/${post._id}`)
+    input(type='hidden', name='_csrf', value=_csrf)
+    .form-group
+      label(for='title') Title
+      input.form-control(type='text', name='title', value=post.title, required)
+    .form-group
+      label(for='content') Content
+      textarea.form-control(name='content', rows='5', required)= post.content
+    .form-group
+      label(for='author') Author
+      input.form-control(type='text', name='author', value=post.author, required)
+    button.btn.btn-primary.mt-2.d-inline-block.me-1(type='submit') Update
+    a.btn.btn-danger.mt-2.d-inline-block.me-1(href=`/blog/${post._id}/show`) Cancel
+
+  script.
+    // Embed the post variable into JavaScript
+    const post = !{JSON.stringify(post)}; // Convert post to a JSON object
+
+    const form = document.getElementById('editBlogPostForm');
+
+    const onsubmit = async function (event) {
+      event.preventDefault(); // Prevent the default form submission
+
+      const formData = new FormData(form);
+      const data = Object.fromEntries(formData.entries());
+
+      console.log("post",post);
+
+      try {
+        const csrfToken = document.querySelector('input[name="_csrf"]').value; // Get the CSRF token from the input field
+
+        // Make the POST request using Axios
+        const response = await axios.post(`http://localhost:8080/blog-post/${post._id}`, data, {
+          headers: {
+            'X-CSRF-Token': csrfToken, // Set the CSRF token in the header
+            'Content-Type': 'application/x-www-form-urlencoded'
+          }
+        });
+
+        console.log('Response data:', response); // Moved here to ensure it logs after the response
+
+        // Use response.status instead of response.statusCode
+        if (response.status === 200) {
+          window.location.href = `/blog/${post._id}/show`; // Redirect on success
+        } else {
+          alert('Failed to update the blog post.');
+        }
+      } catch (error) {
+        console.error('Error updating blog post:', error);
+        if (error.response) {
+          // The request was made and the server responded with a status code
+          console.error('Response data:', error.response.data);
+          console.error('Response status:', error.response.status);
+          console.error('Response headers:', error.response.headers);
+          alert(`Error: ${error.response.status} - ${error.response.data}`);
+        } else if (error.request) {
+          // The request was made but no response was received
+          console.error('Request data:', error.request);
+          alert('No response received from the server.');
+        } else {
+          // Something happened in setting up the request that triggered an Error
+          console.error('Error message:', error.message);
+          alert('An error occurred while updating the blog post.');
+        }
+      }
+    };
+
+    // Assign the onsubmit function to the form
+    form.onsubmit = onsubmit;

@@ -1,0 +1,17 @@
+extends ../layout
+
+block content
+  h1 New Blog Post
+  form(method='POST', action='/blog')
+    input(type='hidden', name='_csrf', value=_csrf)
+    .form-group
+      label(for='title') Title
+      input.form-control(type='text', name='title', required)
+    .form-group
+      label(for='content') Content
+      textarea.form-control(name='content', rows='5', required)
+    .form-group
+      label(for='author') Author
+      input.form-control(type='text', name='author', required)
+    button.btn.btn-primary.mt-2.d-inline-block.me-1(type='submit') Submit
+    a.btn.btn-danger.mt-2.d-inline-block.me-1(href=`/blog/list`) Cancel

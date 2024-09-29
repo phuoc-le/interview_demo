@@ -1,0 +1,12 @@
+extends ../layout
+
+block content
+  h1 Blog Posts
+  a.btn.btn-primary.mb-3(href='/blog/new') New Post
+  each post in posts
+    div.card.mb-3
+      div.card-body
+        h5.card-title= post.title
+        p.card-text= post.content.substring(0, 200) + '...'
+        a.btn.btn-info(href='/blog/' + post._id +'/show') Read More
+
