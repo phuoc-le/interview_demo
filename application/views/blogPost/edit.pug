@@ -2,7 +2,7 @@ extends ../layout
 
 block content
   h1 Edit Blog Post
-  form#editBlogPostForm(method='POST', action=`http://localhost:8080/blog-post/${post._id}`)
+  form#editBlogPostForm(method='POST', action=`${API_URL}/api/blog-post/${post._id}`)
     input(type='hidden', name='_csrf', value=_csrf)
     .form-group
       label(for='title') Title
@@ -21,6 +21,7 @@ block content
     const post = !{JSON.stringify(post)}; // Convert post to a JSON object
 
     const form = document.getElementById('editBlogPostForm');
+    const actionUrl = form.action;
 
     const onsubmit = async function (event) {
       event.preventDefault(); // Prevent the default form submission
@@ -28,20 +29,19 @@ block content
       const formData = new FormData(form);
       const data = Object.fromEntries(formData.entries());
 
-      console.log("post",post);
-
       try {
         const csrfToken = document.querySelector('input[name="_csrf"]').value; // Get the CSRF token from the input field
 
         // Make the POST request using Axios
-        const response = await axios.post(`http://localhost:8080/blog-post/${post._id}`, data, {
+        const response = await axios.post(actionUrl, data, {
           headers: {
-            'X-CSRF-Token': csrfToken, // Set the CSRF token in the header
+            'X-CSRF-Token': csrfToken,
+            '_csrf': csrfToken, // Set the CSRF token in the header
             'Content-Type': 'application/x-www-form-urlencoded'
           }
         });
 
-        console.log('Response data:', response); // Moved here to ensure it logs after the response
+        console.log('Response data:', response);
 
         // Use response.status instead of response.statusCode
         if (response.status === 200) {
@@ -52,17 +52,14 @@ block content
       } catch (error) {
         console.error('Error updating blog post:', error);
         if (error.response) {
-          // The request was made and the server responded with a status code
           console.error('Response data:', error.response.data);
           console.error('Response status:', error.response.status);
           console.error('Response headers:', error.response.headers);
           alert(`Error: ${error.response.status} - ${error.response.data}`);
         } else if (error.request) {
-          // The request was made but no response was received
           console.error('Request data:', error.request);
           alert('No response received from the server.');
         } else {
-          // Something happened in setting up the request that triggered an Error
           console.error('Error message:', error.message);
           alert('An error occurred while updating the blog post.');
         }

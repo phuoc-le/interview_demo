@@ -9,40 +9,51 @@ block content
   // Links for navigation and edit
   a.btn.btn-primary.d-inline-block.me-1(href='/blog/list') Back to blog posts
   a.btn.btn-warning.d-inline-block.me-1(href='/blog/' + post._id + '/edit') Edit
-
-  // Form for delete
-  form(onSubmit=`deleteItem('${post._id}', event)`, class='d-inline-block')
+  form#deleteBlogPostForm(method='POST', action=`${API_URL}/api/blog-post/${post._id}/delete`,class='d-inline-block')
     input(type='hidden', name='_csrf', value=_csrf)
     button.btn.btn-danger(type='submit') Delete
 
-  // JavaScript for delete action using Axios
   script.
-    function deleteItem(itemId, event) {
-        // Prevent form from submitting and reloading the page
-        event.preventDefault();
+     // Embed the post variable into JavaScript
+     const form = document.getElementById('deleteBlogPostForm');
+     const actionUrl = form.action;
 
-        var result = confirm("Are you sure you want to delete this item?");
-        if (result) {
-            // CSRF token
-            const csrfToken = document.querySelector('input[name="_csrf"]').value;
+     const onsubmit = async function (event) {
+       event.preventDefault(); // Prevent the default form submission
 
-            // Use Axios to send delete request
-            axios.post(`http://localhost:8080/blog-post/${itemId}/delete`, {}, {
-                headers: {
-                    'CSRF-Token': csrfToken, // Add CSRF token in the request header
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(function(response) {
-                console.log('Delete successful:', response.data);
-                // On success, redirect to the blog list
-                window.location.href = "/blog/list";
-            })
-            .catch(function(error) {
-                debugger; //
-                console.error("Error response:", error.response);
-                console.error("Error message:", error.message);
-                alert("There was an error. Please try again.");
-            });
-        }
-    }
+       const formData = new FormData(form);
+       const data = Object.fromEntries(formData.entries());
+
+       try {
+         const csrfToken = document.querySelector('input[name="_csrf"]').value; // Get the CSRF token from the input field
+
+         // Make the POST request using Axios
+         const response = await axios.post(actionUrl, {
+           headers: {
+             'X-CSRF-Token': csrfToken,
+             '_csrf': csrfToken, // Set the CSRF token in the header
+             'Content-Type': 'application/x-www-form-urlencoded'
+           }
+         });
+
+         console.log('Response data:', response);
+
+         // Use response.status instead of response.statusCode
+         if (response.status === 200) {
+           window.location.href = `/blog/list`; // Redirect on success
+         } else {
+           alert('Failed to update the blog post.');
+         }
+       } catch (error) {
+         console.error('Error updating blog post:', error);
+         if (error.response) {
+           alert(`Error: ${error.response.status} - ${error.response.data}`);
+         } else if (error.request) {
+           alert('No response received from the server.');
+         } else {
+           alert('An error occurred while updating the blog post.');
+         }
+       }
+     };
+     // Assign the onsubmit function to the form
+     form.onsubmit = onsubmit;

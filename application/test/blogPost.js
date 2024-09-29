@@ -2,7 +2,6 @@ const request = require('supertest');
 
 // Only demo for a api.
 (async () => {
-
   /* eslint-disable global-require */
   const app = require('../app');
   /* eslint-enable global-require */

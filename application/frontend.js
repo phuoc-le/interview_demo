@@ -10,14 +10,13 @@ const logger = require('morgan');
 const errorHandler = require('errorhandler');
 const lusca = require('lusca');
 const dotenv = require('dotenv');
-const MongoStore = require('connect-mongo');
 const flash = require('express-flash');
 const rateLimit = require('express-rate-limit');
 
 /**
  * Load environment variables from .env file, where API keys and passwords are configured.
  */
-dotenv.config({ path: '.env.example' });
+dotenv.config({ path: '.env.frontend' });
 
 /**
  * Set config values
@@ -77,18 +76,9 @@ app.use(session({
   cookie: {
     maxAge: 1209600000, // Two weeks in milliseconds
     secure: secureTransfer
-  },
-  store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI })
+  }
 }));
 app.use(flash());
-app.use((req, res, next) => {
-  if (req.path === '/api/upload' || req.path === '/api/posts') {
-    // Multer multipart/form-data handling needs to occur before the Lusca CSRF check.
-    next();
-  } else {
-    lusca.csrf()(req, res, next);
-  }
-});
 app.use(lusca.xframe('SAMEORIGIN'));
 app.use(lusca.xssProtection(true));
 app.disable('x-powered-by');

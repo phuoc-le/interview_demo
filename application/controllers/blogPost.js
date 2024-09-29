@@ -1,7 +1,7 @@
 const axios = require('axios');
 const Blog = require('../models/BlogPost');
 
-const API_URL = 'http://localhost:8080/api/blog-post';
+const { API_URL } = process.env;
 
 // CREATE: Show form
 exports.showNewBlogPost = async (req, res) => {
@@ -23,7 +23,7 @@ exports.newBlogPost = async (req, res) => {
     });
     await blog.save();
     res.status(201)
-      .send(blog);
+      .send(`Post with ID ${blog._id} created.`);
   } catch (err) {
     res.status(500)
       .send('Error creating blog post');
@@ -122,7 +122,7 @@ exports.deleteBlogPost = async (req, res) => {
     await Blog.findByIdAndDelete(postId);
     console.log('postId: ', postId);
     res.status(200)
-      .end();
+      .send(`Post with ID ${postId} deleted.`);
   } catch (err) {
     res.status(500)
       .send('Error deleting blog post');
