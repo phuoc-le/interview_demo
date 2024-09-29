@@ -8,7 +8,6 @@ const session = require('express-session');
 const bodyParser = require('body-parser');
 const logger = require('morgan');
 const errorHandler = require('errorhandler');
-const lusca = require('lusca');
 const dotenv = require('dotenv');
 const MongoStore = require('connect-mongo');
 const flash = require('express-flash');
@@ -97,44 +96,34 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(flash());
-app.use((req, res, next) => {
-  if (req.path === '/api/upload' || req.path === '/blog-post') {
-    // Multer multipart/form-data handling needs to occur before the Lusca CSRF check.
-    next();
-  } else {
-    lusca.csrf()(req, res, next);
-  }
-});
-app.use(lusca.xframe('SAMEORIGIN'));
-app.use(lusca.xssProtection(true));
 app.disable('x-powered-by');
 app.use((req, res, next) => {
   res.locals.user = req.user;
   next();
 });
 
+// Enable CORS with specific origin or allow all origins
+app.use(cors({
+  origin: '*', // Replace with your frontend's origin
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed methods
+  credentials: true, // Enable if your API uses cookies or sessions
+  allowedHeaders: ['Content-Type', 'X-CSRF-Token', '_csrf'] // Allow specific headers
+}));
+
 app.use((req, res, next) => {
   // After successful login, redirect back to the intended page
   if (!req.user
-    && req.path !== '/login'
-    && req.path !== '/signup'
-    && !req.path.match(/^\/auth/)
-    && !req.path.match(/\./)) {
+      && req.path !== '/login'
+      && req.path !== '/signup'
+      && !req.path.match(/^\/auth/)
+      && !req.path.match(/\./)) {
     req.session.returnTo = req.originalUrl;
   } else if (req.user
-    && (req.path === '/account' || req.path.match(/^\/api/))) {
+      && (req.path === '/account' || req.path.match(/^\/api/))) {
     req.session.returnTo = req.originalUrl;
   }
   next();
 });
-
-// Allow CORS for all routes and origins (adjust this for production)
-app.use(cors({
-  origin: 'http://localhost:3000', // Change this to your frontend URL
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow specific methods
-  allowedHeaders: ['Content-Type', 'X-CSRF-Token'], // Allow specific headers
-  credentials: true
-}));
 
 /**
  * Blog post routes.
@@ -164,8 +153,8 @@ app.get('/api/paypal', apiController.getPayPal);
 app.get('/api/paypal/success', apiController.getPayPalSuccess);
 app.get('/api/paypal/cancel', apiController.getPayPalCancel);
 app.get('/api/lob', apiController.getLob);
-app.get('/api/upload', lusca({ csrf: true }), apiController.getFileUpload);
-app.post('/api/upload', upload.single('myFile'), lusca({ csrf: true }), apiController.postFileUpload);
+app.get('/api/upload', apiController.getFileUpload);
+app.post('/api/upload', upload.single('myFile'), apiController.postFileUpload);
 app.get('/api/pinterest', passportConfig.isAuthenticated, passportConfig.isAuthorized, apiController.getPinterest);
 app.post('/api/pinterest', passportConfig.isAuthenticated, passportConfig.isAuthorized, apiController.postPinterest);
 app.get('/api/here-maps', apiController.getHereMaps);
@@ -245,7 +234,7 @@ app.use((req, res, next) => {
   const err = new Error('Not Found');
   err.status = 404;
   res.status(404)
-    .send('Page Not Found');
+      .send('Page Not Found');
 });
 
 if (process.env.NODE_ENV === 'development') {
@@ -255,7 +244,7 @@ if (process.env.NODE_ENV === 'development') {
   app.use((err, req, res) => {
     console.error(err);
     res.status(500)
-      .send('Server Error');
+        .send('Server Error');
   });
 }
 

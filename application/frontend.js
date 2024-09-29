@@ -8,7 +8,6 @@ const session = require('express-session');
 const bodyParser = require('body-parser');
 const logger = require('morgan');
 const errorHandler = require('errorhandler');
-const lusca = require('lusca');
 const dotenv = require('dotenv');
 const flash = require('express-flash');
 const rateLimit = require('express-rate-limit');
@@ -58,6 +57,7 @@ console.log('Run this app using "npm start" to include sass/scss/css builds.\n')
 /**
  * Express configuration.
  */
+app.locals.API_URL = process.env.API_URL || 'http://localhost:8080';
 app.set('host', process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0');
 app.set('port', process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 3000);
 app.set('views', path.join(__dirname, 'views'));
@@ -79,8 +79,6 @@ app.use(session({
   }
 }));
 app.use(flash());
-app.use(lusca.xframe('SAMEORIGIN'));
-app.use(lusca.xssProtection(true));
 app.disable('x-powered-by');
 app.use((req, res, next) => {
   res.locals.user = req.user;
@@ -90,13 +88,13 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
   // After successful login, redirect back to the intended page
   if (!req.user
-    && req.path !== '/login'
-    && req.path !== '/signup'
-    && !req.path.match(/^\/auth/)
-    && !req.path.match(/\./)) {
+      && req.path !== '/login'
+      && req.path !== '/signup'
+      && !req.path.match(/^\/auth/)
+      && !req.path.match(/\./)) {
     req.session.returnTo = req.originalUrl;
   } else if (req.user
-    && (req.path === '/account' || req.path.match(/^\/api/))) {
+      && (req.path === '/account' || req.path.match(/^\/api/))) {
     req.session.returnTo = req.originalUrl;
   }
   next();
@@ -145,7 +143,7 @@ app.use((req, res, next) => {
   const err = new Error('Not Found');
   err.status = 404;
   res.status(404)
-    .send('Page Not Found');
+      .send('Page Not Found');
 });
 
 if (process.env.NODE_ENV === 'development') {
@@ -155,7 +153,7 @@ if (process.env.NODE_ENV === 'development') {
   app.use((err, req, res) => {
     console.error(err);
     res.status(500)
-      .send('Server Error');
+        .send('Server Error');
   });
 }
 

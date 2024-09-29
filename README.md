@@ -81,9 +81,10 @@ cd application
 ```
 npm install
 ```
-3. Copy .env.example into .env
+3. Copy .env.example into .env.backend and .env.frontend
 ```
-cp .env.example .env
+cp .env.example .env.backend
+cp .env.example .env.frontend
 ```
 4. Start Local Development Server
 ```
