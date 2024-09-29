@@ -70,6 +70,9 @@ This project extends the hackathon-starter template by adding a blog post system
 - Push the images to AWS ECR.
 - Deploy the updated application to the EKS cluster.
 
+Note: There are 3 modes: ONLY_BUILD, ONLY_DEPLOY, ALL
+The main purpose of ONLY_BUILD mode is to only build the source and push the image to ECR before deploying the stage. If we choose the ALL mode, the pipeline will run all stages.
+
 ### Application
 
 1. Clone the Repository:
