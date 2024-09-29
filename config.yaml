@@ -1,0 +1,31 @@
+development:
+  db_url: "mongodb://localhost:27017/local-db"
+  api_key: "DEV_API_KEY"
+  app_port: 3000
+  kubernetes_cluster:
+    name: dev-demo-cluster
+    region: us-east-1
+
+testing:
+  db_url: "mongodb://localhost:27017/testing-db"
+  api_key: "TEST_API_KEY"
+  app_port: 3000
+  kubernetes_cluster:
+    name: tesing-demo-cluster
+    region: us-east-1
+
+staging:
+  db_url: "mongodb://staging.mongodb.net:27017/staging-db"
+  api_key: "STAGING_API_KEY"
+  app_port: 3000
+  kubernetes_cluster:
+    name: staging-demo-cluster
+    region: us-east-1
+
+production:
+  db_url: "mongodb://prod.mongodb.net:27017/prod-db"
+  api_key: "PROD_API_KEY"
+  app_port: 3000
+  kubernetes_cluster:
+    name: production-demo-cluster
+    region: us-east-1

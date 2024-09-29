@@ -1,0 +1,119 @@
+replicaCount: 1
+
+image:
+  repository: nginx
+  pullPolicy: IfNotPresent
+  tag: "1.25"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: false
+  annotations: {}
+  name: ""
+
+strategy:
+  type: Recreate
+
+podAnnotations: {}
+
+terminationGracePeriodSeconds: 30
+
+podSecurityContext: {}
+# fsGroup: 2000
+
+securityContext: {}
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+# runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+
+initContainers: []
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+  # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: dev.phuocle.me
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls:
+    - secretName: dev-phuocle-tls
+      hosts:
+        - dev.phuocle.me
+
+resources: {}
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+#   memory: 128Mi
+
+startupProbe: {}
+  #  httpGet:
+  #    path: /
+  #    port: http
+
+livenessProbe: {}
+#  httpGet:
+#    path: /
+#    port: http
+readinessProbe: {}
+#  httpGet:
+#    path: /
+#    port: http
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 2
+  metrics:
+    - resource:
+        name: memory
+        target:
+          averageValue: 1000Mi
+          type: AverageValue
+      type: Resource
+    - resource:
+        name: cpu
+        target:
+          averageValue: 500m
+          type: AverageValue
+      type: Resource
+  behavior:
+    scaleDown:
+      policiesPeriodSeconds: 300
+      policiesType: Pods
+      policiesValue: 1
+      selectPolicy: Max
+      stabilizationWindowSeconds: 90
+    scaleUp:
+      policiesPeriodSeconds: 90
+      policiesType: Pods
+      policiesValue: 1
+      selectPolicy: Max
+      stabilizationWindowSeconds: 60
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+env:
+  configmap:
+    NODE_ENV: production
+  secret:
+    DATABASE_URL: postgres://aieicjhj:cT0mcX_rN8iNvS_uWq-AcCLSwG2CNnjA@john.db.elephantsql.com/aieicjhj
+    JWT_SECRET: Y5jAKUUWC2ZNKM3mbi4nQxGrFh8OIlwG

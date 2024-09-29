@@ -1,0 +1,12 @@
+{{- if .Values.env.configmap }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-configmap
+  labels:
+    {{- include "demo-chart.labels" . | nindent 4 }}
+{{- with .Values.env.configmap }}
+data:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end }}

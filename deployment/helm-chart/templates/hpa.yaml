@@ -1,0 +1,36 @@
+{{- if .Values.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "demo-chart.fullname" . }}
+  labels:
+    {{- include "demo-chart.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "demo-chart.fullname" . }}-deployment
+  minReplicas: {{ .Values.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+  {{- if .Values.autoscaling.behavior }}
+  behavior:
+    scaleDown:
+      policies:
+        - periodSeconds: {{ .Values.autoscaling.behavior.scaleDown.policiesPeriodSeconds }}
+          type: {{ .Values.autoscaling.behavior.scaleDown.policiesType }}
+          value: {{ .Values.autoscaling.behavior.scaleDown.policiesValue }}
+      selectPolicy: {{ .Values.autoscaling.behavior.scaleDown.selectPolicy }}
+      stabilizationWindowSeconds: {{ .Values.autoscaling.behavior.scaleDown.stabilizationWindowSeconds }}
+    scaleUp:
+      policies:
+        - periodSeconds: {{ .Values.autoscaling.behavior.scaleUp.policiesPeriodSeconds }}
+          type: {{ .Values.autoscaling.behavior.scaleUp.policiesType }}
+          value: {{ .Values.autoscaling.behavior.scaleUp.policiesValue }}
+      selectPolicy: {{ .Values.autoscaling.behavior.scaleUp.selectPolicy }}
+      stabilizationWindowSeconds: {{ .Values.autoscaling.behavior.scaleUp.stabilizationWindowSeconds }}
+  {{- end }}
+  {{- with .Values.autoscaling.metrics }}
+  metrics:
+    {{- toYaml . | nindent 2 }}
+  {{- end }}
+{{- end }}

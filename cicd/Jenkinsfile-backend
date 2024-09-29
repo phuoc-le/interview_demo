@@ -1,0 +1,142 @@
+pipeline {
+    agent none
+    parameters {
+        string(name: 'BRANCH', defaultValue: 'master', description: '', trim: true)
+        booleanParam(name: 'OVERRIDE_BUILD', defaultValue: false, description: '')
+    }
+    options {
+        buildDiscarder(logRotator(daysToKeepStr: '30', numToKeepStr: '5'))
+        disableResume()
+    }
+    environment {
+        SERVICE_NAME = "demo-api"
+        HELM_EXPERIMENTAL_OCI = 1
+        BUILD_ENV = "demo"
+        NAME_SPACE = "default"
+        PORT = 80
+        AWS_ACCOUNT_ID = "xxxxxx"
+        AWS_REGION = "us-east-1"
+        CONTAINER_REGISTRY_URL = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+        REPOSITORY_NAME = "${BUILD_ENV}/${SERVICE_NAME}"
+        CLUSTER_NAME = "demo-eks"
+        KUBECONFIG = "/opt/.kube/config_demo"
+        MODE = "$params.MODE"
+        BRANCH = "$params.BRANCH"
+        CREDENTIALS_ID = 'github-credentials'
+        GIT_REPO_URL = 'https://github.com/phuoc-le/interview_tf_api_demo.git'
+    }
+    stages {
+        stage('Checkout') {
+            agent { label 'build' }
+            steps {
+                echo "Checkout git repository..."
+                script {
+                    checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: "$BRANCH"]],
+                        userRemoteConfigs: [[credentialsId: "$CREDENTIALS_ID", url: "$GIT_REPO_URL"]]
+                    ])
+                    env.DOCKER_TAG_ID = "${sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()}"
+                    env.GIT_COMMIT_MSG = "${sh(script: 'git log -1 --pretty=%B ${GIT_COMMIT}', returnStdout: true).trim()}"
+                }
+            }
+        }
+        stage('Test') {
+            agent { label 'build' }
+            when {
+                anyOf {
+                    environment name: 'MODE', value: 'ONLY_BUILD'
+                    environment name: 'MODE', value: 'ALL'
+                }
+            }
+            steps {
+                echo "Start testing ...."
+                sh 'cd ../application && npm install && npm run test'
+                echo "Finish testing ...."
+            }
+        }
+        stage('Build') {
+            agent { label 'build' }
+            when {
+                anyOf {
+                    environment name: 'MODE', value: 'ONLY_BUILD'
+                    environment name: 'MODE', value: 'ALL'
+                }
+            }
+            steps {
+                echo "Start building ...."
+                sh 'cd ../application && npm install && npm run build'
+                echo "Finish building ...."
+            }
+        }
+        stage('Build And Push Docker Image To ECR') {
+            agent { label 'build' }
+            when {
+                anyOf {
+                    environment name: 'MODE', value: 'ONLY_BUILD'
+                    environment name: 'MODE', value: 'ALL'
+                }
+            }
+            environment {
+                 def OVERRIDE_BUILD = "$params.OVERRIDE_BUILD"
+            }
+            steps {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
+                    script {
+                        echo "Prepare building image..."
+                        sh 'aws ecr describe-repositories --region ${AWS_REGION} --repository-names ${REPOSITORY_NAME} || aws ecr create-repository --region ${AWS_REGION} --repository-name ${REPOSITORY_NAME} --image-scanning-configuration scanOnPush=true'
+                        try {
+                            sh(script: "aws ecr describe-images --region ${AWS_REGION} --repository-name ${REPOSITORY_NAME} --image-ids imageTag='$DOCKER_TAG_ID'", returnStdout: false)
+                            echo "Image tag existed in ECR!"
+                            if (OVERRIDE_BUILD.toBoolean()) {
+                                echo 'Overriding build image...'
+                                sh 'cd ../application && docker build --no-cache -t ${CONTAINER_REGISTRY_URL}/${REPOSITORY_NAME}:${DOCKER_TAG_ID} . -m 6g '
+                                sh 'aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${CONTAINER_REGISTRY_URL}'
+                                sh 'docker push ${CONTAINER_REGISTRY_URL}/${REPOSITORY_NAME}:${DOCKER_TAG_ID}'
+                                sh 'docker rmi -f ${CONTAINER_REGISTRY_URL}/${REPOSITORY_NAME}:${DOCKER_TAG_ID}'
+                            }
+                        } catch(Exception e) {
+                            echo "Image tag not existed in ECR!"
+                            echo "Start building image...."
+                            sh 'cd ../application && docker build --no-cache -t ${CONTAINER_REGISTRY_URL}/${REPOSITORY_NAME}:${DOCKER_TAG_ID} . -m 6g '
+                            sh 'aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${CONTAINER_REGISTRY_URL}'
+                            sh 'docker push ${CONTAINER_REGISTRY_URL}/${REPOSITORY_NAME}:${DOCKER_TAG_ID}'
+                            sh 'docker rmi -f ${CONTAINER_REGISTRY_URL}/${REPOSITORY_NAME}:${DOCKER_TAG_ID}'
+                        } finally {
+                            sh 'echo "Clean assets..."'
+                        }
+                    }
+                }
+                echo "Finished building image...."
+            }
+        }
+        stage('Deploy') {
+            agent { label 'deploy' }
+            when {
+                anyOf {
+                    environment name: 'MODE', value: 'ONLY_DEPLOY'
+                    environment name: 'MODE', value: 'ALL'
+                }
+            }
+            steps {
+                echo "Start deploying the service to EKS...."
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
+                    script {
+                        sh 'aws eks update-kubeconfig --region ${REGION} --name ${CLUSTER_NAME}'
+                        sh 'aws ecr describe-images --region "${AWS_REGION}" --repository-name "${REPOSITORY_NAME}" --image-ids imageTag="$DOCKER_TAG_ID"'
+                        echo "Deploying..."
+                        sh 'helm upgrade --install ${SERVICE_NAME} --kubeconfig ${KUBECONFIG} ./demo-chart -f values.yaml --set service.port=${PORT} --set service.targetPort=${PORT} --set image.repository=${CONTAINER_REGISTRY_URL}/${REPOSITORY_NAME} --set image.tag=${DOCKER_TAG_ID} -n ${NAME_SPACE} --wait'
+                    }
+                }
+                echo "Finished deploying the service to EKS ...."
+                slackSend( channel: "#deployment-notification", color: "good", message:  " ----------- ${JOB_BASE_NAME} Started by user ${BUILD_USER} -------------- \n ----------- 【BACKEND- API】- 【DEMO】Environment ----------- \n----------- Have new updates in latest build. ------------ \n --------------------------------------------------------------- \n $JOB_BASE_NAME - #$BUILD_NUMBER - Changes: \n   $GIT_COMMIT_MSG  ")
+            }
+        }
+    }
+
+    post {
+        failure {
+            slackSend( channel: "#deployment-notification", color: "danger", message:  "----------- ${JOB_BASE_NAME} Started by user ${BUILD_USER} ------------------------------ \n ----------- 【BACKEND- API】- 【DEMO】Environment ----------- \n----------- Build failed !!! Please check logs for more detail. ${BUILD_URL}console ------------------ ")
+        }
+    }
+}
