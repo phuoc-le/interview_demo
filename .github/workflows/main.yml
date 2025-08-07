@@ -1,0 +1,58 @@
+- name: Get master version
+  id: get_master_version
+  run: |
+    # Lấy package.json từ nhánh master
+    MASTER_PKG=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+      -H "Accept: application/vnd.github.v3.raw" \
+      https://api.github.com/repos/${{ github.repository }}/contents/package.json?ref=master)
+    
+    MASTER_VERSION=$(echo "$MASTER_PKG" | jq -r .version)
+    echo "MASTER_VERSION=$MASTER_VERSION" >> $GITHUB_OUTPUT
+    echo "Master version: $MASTER_VERSION"
+
+- name: Get develop version
+  id: get_develop_version
+  run: |
+    DEVELOP_VERSION=$(cat package.json | jq -r .version)
+    echo "DEVELOP_VERSION=$DEVELOP_VERSION" >> $GITHUB_OUTPUT
+    echo "Develop version: $DEVELOP_VERSION"
+
+- name: Compare versions and calculate new version
+  id: calculate_version
+  run: |
+    MASTER_VERSION=${{ steps.get_master_version.outputs.MASTER_VERSION }}
+    DEVELOP_VERSION=${{ steps.get_develop_version.outputs.DEVELOP_VERSION }}
+    
+    # Tách các phần version
+    MASTER_MAJOR=$(echo $MASTER_VERSION | cut -d. -f1)
+    MASTER_MINOR=$(echo $MASTER_VERSION | cut -d. -f2)
+    MASTER_PATCH=$(echo $MASTER_VERSION | cut -d. -f3)
+    
+    DEVELOP_MAJOR=$(echo $DEVELOP_VERSION | cut -d. -f1)
+    DEVELOP_MINOR=$(echo $DEVELOP_VERSION | cut -d. -f2)
+    DEVELOP_PATCH=$(echo $DEVELOP_VERSION | cut -d. -f3)
+    DEVELOP_BUILD=$(echo $DEVELOP_VERSION | cut -d. -f4)
+    
+    # So sánh version
+    if [ "$DEVELOP_MAJOR" -lt "$MASTER_MAJOR" ] || \
+       [ "$DEVELOP_MAJOR" -eq "$MASTER_MAJOR" -a "$DEVELOP_MINOR" -lt "$MASTER_MINOR" ] || \
+       [ "$DEVELOP_MAJOR" -eq "$MASTER_MAJOR" -a "$DEVELOP_MINOR" -eq "$MASTER_MINOR" -a "$DEVELOP_PATCH" -lt "$MASTER_PATCH" ]; then
+      # Nếu develop version thấp hơn master, tạo version mới dựa trên master + .0
+      NEW_VERSION="${MASTER_VERSION}.0"
+      echo "Develop version is lower than master. Bumping to: $NEW_VERSION"
+    else
+      # Nếu không, tăng build number lên 1
+      NEW_BUILD=$((DEVELOP_BUILD + 1))
+      NEW_VERSION="${DEVELOP_MAJOR}.${DEVELOP_MINOR}.${DEVELOP_PATCH}.${NEW_BUILD}"
+      echo "Bumping build number to: $NEW_VERSION"
+    fi
+    
+    echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
+    echo "Calculated new version: $NEW_VERSION"
+
+- name: Update package.json version
+  run: |
+    NEW_VERSION=${{ steps.calculate_version.outputs.NEW_VERSION }}
+    jq --arg v "$NEW_VERSION" '.version = $v' package.json > package.json.tmp
+    mv package.json.tmp package.json
+    cat package.json
