@@ -8,6 +8,12 @@ jobs:
   get_package_json:
     name: Create Tag For Herond Core
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+      packages: write
+      attestations: write
     steps:
       - name: Get master version
         id: get_master_version
@@ -60,40 +66,3 @@ jobs:
           
           echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "Calculated new version: $NEW_VERSION"
-
-      - name: Update package.json version
-        run: |
-          NEW_VERSION=${{ steps.calculate_version.outputs.NEW_VERSION }}
-          jq --arg v "$NEW_VERSION" '.version = $v' package.json > package.json.tmp
-          mv package.json.tmp package.json
-          cat package.json
-
-    name: Trigger Herond Browser Build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pages: write
-      id-token: write
-      packages: write
-      attestations: write
-    needs:
-      - create_tag_by_packagejson
-    if: always()
-    steps:
-      - name: Repository Dispatch
-        uses: peter-evans/repository-dispatch@v3
-        with:
-          token: ${{ secrets.DEFAULT_GITHUB_SETTINGS_PAT }}
-          repository: herondlabs/herond-browser
-          event-type: trigger-workflow-by-tag
-          client-payload: |-
-            {
-              "core": {
-                "tag": "${{ inputs.tag != '' && inputs.tag || needs.create_tag_by_packagejson.outputs.new_version }}",
-                "sha": "${{ needs.create_tag_by_packagejson.outputs.tag_sha }}",
-                "branch": "${{ github.ref_name }}",
-                "channel": "${{ inputs.channel }}",
-                "is_prebuild": ${{ inputs.is_prebuild }},
-                "is_release": ${{ inputs.is_release }}
-              }
-            }
